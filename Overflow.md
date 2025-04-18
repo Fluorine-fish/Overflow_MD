@@ -40,6 +40,65 @@ add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
 ```
 - 这段代码实现了在HAL库利用标准库初始化USB引脚前用户抢先声明，让PA12引脚在初始化时被拉低，然后延时50ms，让主机认为设备断开，随后用户声明被标准库覆盖，PA12引脚被拉高，主机认为设备接入，不会影响后续程序的运行。
 ### 3. 发送数据：`uint8_t CDC_Transmit_FS(uint8_t *Buffer, uint16_t Len)`
-- 函数接收参数：缓冲区地址，字节数；如果USB正忙，则返回USBD_BUSY；如果成功，则返回USBD_OK。
+- 函数接收参数：缓冲区地址，字节数；如果USB正忙，则返回`USBD_BUSY`；如果成功，则返回`USBD_OK`。
 
 ## 03 使用CPP进行stm32编程
+### 1.main函数的cpp实现（原文知乎：https://www.zhihu.com/question/640675598/answer/3418607369）
+- 说实话这并不是重写一个cpp的main函数，而是写一个`CPP_main()`函数然后嵌套到原有的main函数中，用户自定义的main业务都可以写在这个函数中，而且可以使用cpp的语法而已
+- 具体步骤：
+1. 在根目录下建立`Cpp_Core`目录，然后在其中再建立两个目录`Inc`和`Src`，在`Inc`中建立`Cpp_main.h`文件，在`Src`中建立`Cpp_main.cpp`文件
+2. 在`Cpp_main.cpp`文件中`CPP_main()`函数：
+3. 在`Cpp_main.h`中`#include "mian.h"`
+4. 因为`main.h`中包含，cpp和c联合编译所需的宏（由于cpp的函数不能直接被c读取，需要使用extern "C" 声明，而这段宏的作用就是在如果定义了`__cplusplus`（也就是使用了cpp文件）的时候使用这个声明）
+``` cpp
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+```
+所以需要将`int cpp_main()`函数放在`#ifdef __cplusplus`和`#endif`之间进行声明，然后在`main.c`中调用这个函数即可
+``` c
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  /* USER CODE BEGIN 2 */
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    cpp_main();
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+```
